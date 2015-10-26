@@ -7,6 +7,9 @@ import math
 
 class MainApp(object):
     def __init__(self):
+        pass
+
+    def loadCitiesData(self):
         self.cities_data = pd.read_csv("worldcitiespop.txt", names=["Country", "City", "AccentCity", "Region", "Population", "Latitude", "Longitude"], na_values=['-', ''], low_memory=False)
         self.cities_data["City"] = self.cities_data["City"].apply(lambda x:x.lower())
         self.cities_data["Region"] = self.cities_data["Region"].apply(lambda x:str(x).lower())
@@ -23,7 +26,8 @@ class MainApp(object):
         return location
     
     def classify(self):
-        file = open('region1.txt', 'w')
+        file_region_rating = open('region.txt', 'w')
+        file_region_category = open('region_category.txt', 'w')
         with open('yelp_academic_dataset_business.json') as f:
             for line in f:
                 business = json.loads(line)
@@ -53,15 +57,20 @@ class MainApp(object):
                         elif -135 < degree <= -45:
                             region = "south"
                     
-                    file.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(business['business_id'], business['stars'], region, miles, degree))
+                    file_region_rating.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(business['business_id'], business['stars'], region, miles, degree))
+                    categories = business["categories"]
+                    for category in categories:
+                        file_region_category.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(business['business_id'], category, region, miles, degree))
                 else:
                     self.noMatch += 1
         
-        file.close()
+        file_region_rating.close()
+        file_region_category.close()
         print(self.noMatch)
 
 def main():
         app = MainApp()
+        app.loadCitiesData()
         app.classify()
 
 if __name__ == "__main__":  # Entry Point for program.
