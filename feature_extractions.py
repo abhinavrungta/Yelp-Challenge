@@ -6,11 +6,11 @@ from pyspark.sql import SQLContext
 class MainApp(object):
     def __init__(self):
         config = SparkConf()
-        awsAccessKeyId="AKIAJBCH5K3V2QGNRX5A"
-        awsSecretAccessKey="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"
-        config.set("fs.s3n.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-        config.set("fs.s3n.awsAccessKeyId", "AKIAJBCH5K3V2QGNRX5A")
-        config.set("fs.s3n.awsSecretAccessKey", "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")
+        #self.awsAccessKeyId="<awsAccessKeyId>"
+        #self.awsSecretAccessKey="<awsSecretAccessKey>"
+        #config.set("fs.s3n.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+        #config.set("fs.s3n.awsAccessKeyId", self.awsAccessKeyId)
+        #config.set("fs.s3n.awsSecretAccessKey", self.awsSecretAccessKey)
 
         self.sc = SparkContext(conf=config)
         self.sqlContext = SQLContext(self.sc)
@@ -46,7 +46,7 @@ class MainApp(object):
 
 
     def loadJsonDataAsSparkDF(self, filename):
-        #df = sqlContext.read.json("s3n://"+awsAccessKeyId+":"+awsSecretAccessKey+"@"+bucketName+"/"+fileName)
+        #df = sqlContext.read.json("s3n://"+self.awsAccessKeyId+":"+self.awsSecretAccessKey+"@"+self.bucketName+"/"+fileName)
         df = self.sqlContext.read.json(filename)
         return df
 
