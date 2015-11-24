@@ -1,11 +1,12 @@
 import datetime
+import math
 import os
 import sys
 
 from pyspark import *
 from pyspark.sql import SQLContext
 from pyspark.sql.functions import UserDefinedFunction
-from pyspark.sql.types import DoubleType
+from pyspark.sql.types import IntegerType, DoubleType
 
 import pandas as pd
 
@@ -18,8 +19,11 @@ def getEliteScore(elite):
         base += x
         sum += x / (currentYear - x)
     if base == 0:
-        return 0
+        return 0.0
     return sum / base
+
+def getEliteCategory(elite):
+    return int(math.floor(elite / 0.05))
 
 class MainApp(object):
     def __init__(self):
@@ -34,6 +38,7 @@ class MainApp(object):
         self.sc = SparkContext(conf=config)
         self.sqlContext = SQLContext(self.sc)
         self.elite_score = UserDefinedFunction(getEliteScore, DoubleType())
+        self.elite_cat = UserDefinedFunction(getEliteCategory, IntegerType())
 
         self.bucketName = 'ds-emr-spark'
     
@@ -145,11 +150,10 @@ class MainApp(object):
         self.user = self.sqlContext.sql("SELECT u.*, floor(months_between(current_date(), to_date(u.yelping_since))) \
         AS months_yelping FROM user u")
         self.user.registerTempTable("user")
-        # name = 'elite'
-        # self.user2 = self.user.select(*[getEliteScore(column).alias(name) if column == name else column for column in self.user.columns])
-
 
         self.user = self.user.withColumn("elite", self.elite_score(self.user["elite"]))
+        self.user.registerTempTable("user")
+        self.user = self.user.withColumn("elite_cat", self.elite_cat(self.user["elite"]))
         self.user.registerTempTable("user")
         # d.printSchema()
         # print "number of users: ", user.count()
@@ -173,7 +177,7 @@ class MainApp(object):
         
         self.userAgg = self.sqlContext.sql("SELECT u.user_id, u.name, u.review_count, u.average_stars, \
             u.votes.cool AS votes_cool, u.votes.funny AS votes_funny, u.votes.useful AS votes_useful, \
-            u.months_yelping, u.elite, br.category, br.cat_business_count, br.cat_review_count, \
+            u.months_yelping, u.elite, u.elite_cat, br.category, br.cat_business_count, br.cat_review_count, \
             br.cat_avg_review_len, br.cat_avg_stars \
             FROM business_review_agg AS br, user AS u WHERE br.user_id = u.user_id")
         # print userAgg.count()
@@ -186,7 +190,8 @@ class MainApp(object):
 
 
     def writeToFile(self):    
-        self.userAgg.coalesce(1).toJSON().saveAsTextFile('user_features.json')
+        self.userAgg.repartition(1).save("user_features.json","json")
+
 
 def main():
     app = MainApp()
