@@ -1,3 +1,4 @@
+
 import sys
 from pylab import *
 import pandas as pd
@@ -26,9 +27,9 @@ class MainApp(object):
         return location
     
     def classify(self):
-        file_region_rating = open('region.txt', 'w')
-        file_region_category = open('region_category.txt', 'w')
-        with open('yelp_academic_dataset_business.json') as f:
+        file_region_rating = open('regionwise_rating_per_business.txt', 'w')
+        file_region_category = open('regionwise_category_per_business.txt', 'w')
+        with open('../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json') as f:
             for line in f:
                 business = json.loads(line)
                 city = business['city']

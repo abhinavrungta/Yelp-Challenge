@@ -1,7 +1,7 @@
 import json
 
 categories = set([])
-with open('yelp_academic_dataset_business.json') as f:
+with open('../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json') as f:
 	for line in f:
 		business = json.loads(line)
 		cat = business['categories']
