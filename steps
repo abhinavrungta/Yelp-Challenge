@@ -1,0 +1,25 @@
+sudo pip-2.7 install geopy
+sudo pip-2.7 install pandas
+sudo pip-2.7 install scikit-learn
+export SPARK_HOME=
+export PYSPARK_PYTHON=
+export PTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip
+python2.7 dbscan.py
+
+SPARK_LOCAL_DIRS=comma-separated list of multiple directories
+SPARK_WORKER_CORES=Total number of cores to allow Spark applications to use on the machine 
+SPARK_WORKER_MEMORY=Total amount of memory to allow Spark applications 
+spark.executor.memory=property
+
+import dbscan
+app = dbscan.MainApp()
+app.sc = sc
+app.sqlContext = SQLContext(app.sc)
+app.loadData()
+
+
+dependencies for scikit
+sudo yum install gcc
+sudo yum install gcc-c++
+sudo yum install gcc-gfortran
+sudo yum install atlas-devel

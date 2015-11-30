@@ -11,6 +11,7 @@ from pyspark.context import SparkContext
 from pyspark.sql.context import SQLContext
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StructType, ArrayType, FloatType, StructField, Row
+from pyspark.storagelevel import StorageLevel
 from sklearn.cluster import DBSCAN
 
 
@@ -24,7 +25,9 @@ def getLocationsOfUser(userId, business_db):
         list.append(Row(latitude=row['latitude'], longitude=row['longitude']))
     return list        
     
-def getCentersOfUser(locations):
+def getCentersOfUser(data):
+    userId = data[0]
+    locations = list(data[1])
     size = len(locations)
     distance_matrix = numpy.zeros((size, size))
     for x in range(0, size):
@@ -46,7 +49,7 @@ def getCentersOfUser(locations):
                 if(db.labels_[i] == k):
                     cluster_points.append(locations[i])
             cluster_centers.append(calculateCenter(cluster_points))
-    return cluster_centers
+    return (userId, cluster_centers)
 
 def calculateCenter(cluster_points):
     size = len(cluster_points)
@@ -77,21 +80,21 @@ class MainApp(object):
         pass
     
     def init(self):
-        # os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
+        os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
         # os.environ['AWS_ACCESS_KEY_ID'] = <YOURKEY>
         # os.environ['AWS_SECRET_ACCESS_KEY'] = <YOURKEY>
         conf = SparkConf()
-        conf.setMaster("local")
+        conf.setMaster("local[10]")
         conf.setAppName("PySparkShell")
         conf.set("spark.executor.memory", "2g")
-        # conf.set("spark.driver.memory", "1g")
+        conf.set("spark.driver.memory", "1g")
         self.sc = SparkContext(conf=conf)
         self.sqlContext = SQLContext(self.sc)
         
     def loadData(self):
-        self.df_review = self.sqlContext.read.json("../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json").cache()
+        self.df_review = self.sqlContext.read.json("../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
         # self.df_review = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_review.json").cache()
-        self.df_business = self.sqlContext.read.json("../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json").cache()
+        self.df_business = self.sqlContext.read.json("../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
         # self.df_business = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_business.json").cache()
         self.df_review.registerTempTable("reviews")
         self.df_business.registerTempTable("business")
@@ -102,46 +105,16 @@ class MainApp(object):
         review_user.registerTempTable("reviews_user")
         business_loc.registerTempTable("business_loc")
         
-        self.df_join_reviewAndBusiness = self.sqlContext.sql("SELECT r.user_id, b.latitude, b.longitude FROM reviews_user r JOIN business_loc b ON r.business_id = b.business_id").cache()
-        self.df_join_reviewAndBusiness.registerTempTable("userBusiness")
-        
-        self.df_unique_users = self.sqlContext.sql("SELECT DISTINCT user_id FROM userBusiness")
-        self.df_unique_users.registerTempTable("users")
-        
-        pd = self.df_join_reviewAndBusiness.toPandas()
-        global_db = self.sc.broadcast(pd)
-        
-        schema = StructType([
-            StructField("latitude", FloatType()),
-            StructField("longitude", FloatType())
-        ])
-        partialFunc = partial(getLocationsOfUser, business_db=global_db.value)
-        
-        self.get_locations = udf(partialFunc, ArrayType(schema))
-        self.get_centers = udf(getCentersOfUser, ArrayType(schema))
-    
-        self.df_unique_users = self.df_unique_users.withColumn("user_locations", self.get_locations(self.df_unique_users["user_id"]))
-        self.df_unique_users.registerTempTable("users")
-        
-        self.df_unique_users.repartition(1).write.save("user.json", "json", "overwrite")
-
-        self.df_unique_users = self.df_unique_users.withColumn("user_centers", self.get_centers(self.df_unique_users["user_locations"]))
-        self.df_unique_users.registerTempTable("users")
-        
-        self.df_unique_users.repartition(1).write.save("center.json", "json", "overwrite")
-        self.df_unique_users.show()
-        
-    def distanceCalc(self):
-        self.df_unique_users = self.sqlContext.read.json("user.json/part-r-00000-23a1b514-f5fe-4f61-9a64-01ebbc88c146").cache()
-        getCentersOfUser(self.df_unique_users.toPandas().iloc[0]["user_locations"])
+        self.df_join_reviewAndBusiness = self.sqlContext.sql("SELECT r.user_id, b.latitude, b.longitude FROM reviews_user r JOIN business_loc b ON r.business_id = b.business_id").rdd.groupBy(lambda x: x.user_id).persist(StorageLevel(True, True, False, True, 1))
+        # self.df_join_reviewAndBusiness.repartition(1).saveAsTextFile("user.json")
+        self.user_centers = self.df_join_reviewAndBusiness.map(getCentersOfUser, preservesPartitioning = True)
+        self.user_centers.repartition(1).saveAsTextFile("center.json")
 
 def main():
         app = MainApp()
         app.init()
         app.loadData()
         app.createCheckInDataPerUser()
-        # app.distanceCalc()
-        
 
 if __name__ == "__main__":  # Entry Point for program.
     sys.exit(main())
