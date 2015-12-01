@@ -1,16 +1,13 @@
-from _functools import partial
-import json
+import math
 import numpy
 import os
-from pylab import *
 import sys
 
 from geopy.distance import vincenty
 from pyspark import SparkConf
 from pyspark.context import SparkContext
 from pyspark.sql.context import SQLContext
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StructType, ArrayType, FloatType, StructField, Row
+from pyspark.sql.types import Row
 from pyspark.storagelevel import StorageLevel
 from sklearn.cluster import DBSCAN
 
@@ -38,7 +35,7 @@ def getCentersOfUser(data):
             distance_matrix[x][y] = dist
             distance_matrix[y][x] = dist
     
-    db = DBSCAN(eps=3, min_samples=10, metric='precomputed').fit(distance_matrix)
+    db = DBSCAN(eps=4, min_samples=5, metric='precomputed').fit(distance_matrix)
     
     unique_labels = set(db.labels_)
     cluster_centers = []
