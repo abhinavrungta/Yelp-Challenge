@@ -80,9 +80,9 @@ class MainApp(object):
         catSubCatDict = {}
         subCatCatDict = {}
         for line in open(filename):
-            key, value = line.rstrip().split(":")
+            key = line.rstrip().split(",")[0]
             valueList = []
-            for v in value.split(","):
+            for v in line.rstrip().split(","):
                 subCatCatDict[v] = key
                 valueList.extend(v)
             catSubCatDict[key] = valueList
