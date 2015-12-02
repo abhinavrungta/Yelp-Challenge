@@ -1,23 +1,24 @@
-import math
 import os
 import sys
 
 from pyspark import SparkConf
 from pyspark.context import SparkContext
 from pyspark.sql.context import SQLContext
-from pyspark.sql.types import Row
+from pyspark.sql.types import Row, StructType, StructField, FloatType, ArrayType, \
+    StringType
 from pyspark.storagelevel import StorageLevel
 from sklearn import mixture
 
 import numpy as np        
-    
+
+
 def getCentersOfUser(data):
     userId = data[0]
     locations_row = list(data[1])
     size = len(locations_row)
     cluster_centers = []
     if(size < 5):
-        return (userId, cluster_centers)
+        return (cluster_centers, str(userId))
     locations = np.empty([size, 2])
     for x in range(0, size):
         point = locations_row[x]
@@ -40,9 +41,9 @@ def getCentersOfUser(data):
     centers = best_gmm.means_
     size = len(centers)
     for x in range(0, size):
-        cluster_centers.append(Row(latitude=centers[x][0], longitude=centers[x][1]))
+        cluster_centers.append(Row(latitude=float(centers[x][0]), longitude=float(centers[x][1])))
     
-    return (userId, cluster_centers)
+    return (cluster_centers, str(userId))
 
 class MainApp(object):
     def __init__(self):
@@ -77,7 +78,18 @@ class MainApp(object):
         self.df_join_reviewAndBusiness = self.sqlContext.sql("SELECT r.user_id, b.latitude, b.longitude FROM reviews_user r JOIN business_loc b ON r.business_id = b.business_id").rdd.groupBy(lambda x: x.user_id).persist(StorageLevel(True, True, False, True, 1))
         # self.df_join_reviewAndBusiness.repartition(1).saveAsTextFile("user.json")
         self.user_centers = self.df_join_reviewAndBusiness.map(getCentersOfUser, preservesPartitioning = True)
-        self.user_centers.repartition(1).saveAsTextFile("center_gmm.json")
+        
+        schema_2 = StructType([
+            StructField("latitude", FloatType(), True),
+            StructField("longitude", FloatType(), True)
+        ])
+        
+        schema = StructType([
+            StructField("cluster_centers", ArrayType(schema_2), True),
+            StructField("user_id", StringType(), True)
+        ])
+        df = self.sqlContext.createDataFrame(self.user_centers.repartition(1), schema)
+        df.save("center_gmm.json", "json")
 
 def main():
         app = MainApp()
