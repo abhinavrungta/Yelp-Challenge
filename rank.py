@@ -37,14 +37,14 @@ class MainApp(object):
         pass
     
     def init(self):
-        os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
+        #os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
         # os.environ['AWS_ACCESS_KEY_ID'] = <YOURKEY>
         # os.environ['AWS_SECRET_ACCESS_KEY'] = <YOURKEY>
         conf = SparkConf()
-        conf.setMaster("local[10]")
-        conf.setAppName("PySparkShell")
-        conf.set("spark.executor.memory", "2g")
-        conf.set("spark.driver.memory", "1g")
+        #conf.setMaster("local[10]")
+        #conf.setAppName("PySparkShell")
+        #conf.set("spark.executor.memory", "2g")
+        #conf.set("spark.driver.memory", "1g")
         self.sc = SparkContext(conf=conf)
         self.sqlContext = SQLContext(self.sc)
         
@@ -61,13 +61,13 @@ class MainApp(object):
         
         self.df_business = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
         # self.df_business = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_business.json").cache()
+        self.df_business = self.df_business.select("business_id", "latitude", "longitude", "categories")
 
         filter_business = partial(isBusinessLocalAndRelevant, latitude = self.loc_lat, longitude = self.loc_long, sub_categories = subcat)
         self.df_business = self.df_business.rdd.filter(filter_business)
         self.df_business = self.sqlContext.createDataFrame(self.df_business)
         self.df_business = self.df_business.select(self.df_business.business_id).collect()
-        
-        
+
         schema_2 = StructType([
             StructField("latitude", FloatType(), True),
             StructField("longitude", FloatType(), True)
@@ -82,14 +82,14 @@ class MainApp(object):
         filter_users = partial(isUserlocal, latitude = self.loc_lat, longitude = self.loc_long)
         self.user_locations = self.user_locations.rdd.filter(filter_users)
         self.user_locations = self.sqlContext.createDataFrame(self.user_locations)
-        self.user_locations = self.user_locations.select(self.user_locations.user_id).keyBy(lambda x: x.user_id).collect()
-        
-        self.df_review = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json").keyBy(lambda x: x.user_id)
+        self.user_locations = self.user_locations.select(self.user_locations.user_id).collect()
+
+        self.df_review = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
         # self.joined = self.df_review.join(self.user_locations)
         # self.joined.registerTempTable("reviews")
         # self.joined = self.sqlContext.sql("SELECT user_id, business_id, AVG(stars) AS avg_rating FROM reviews GROUP BY user_id")
         # print(self.joined.take(2))
-        
+    
     def createCheckInDataPerUser(self):
         pass
 
