@@ -37,14 +37,14 @@ class MainApp(object):
         pass
     
     def init(self):
-        os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
+        #os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
         # os.environ['AWS_ACCESS_KEY_ID'] = <YOURKEY>
         # os.environ['AWS_SECRET_ACCESS_KEY'] = <YOURKEY>
         conf = SparkConf()
-        conf.setMaster("local[10]")
-        conf.setAppName("PySparkShell")
-        conf.set("spark.executor.memory", "2g")
-        conf.set("spark.driver.memory", "1g")
+        #conf.setMaster("local[10]")
+        #conf.setAppName("PySparkShell")
+        #conf.set("spark.executor.memory", "2g")
+        #conf.set("spark.driver.memory", "1g")
         self.sc = SparkContext(conf=conf)
         self.sqlContext = SQLContext(self.sc)
         
@@ -61,13 +61,15 @@ class MainApp(object):
         
         self.df_business = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
         # self.df_business = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_business.json").cache()
+        self.df_business = self.df_business.select("business_id", "latitude", "longitude", "categories")
 
         filter_business = partial(isBusinessLocalAndRelevant, latitude = self.loc_lat, longitude = self.loc_long, sub_categories = subcat)
         self.df_business = self.df_business.rdd.filter(filter_business)
         self.df_business = self.sqlContext.createDataFrame(self.df_business)
-        self.df_business = self.df_business.select(self.df_business.business_id).collect()
-        
-        
+        self.df_business = self.df_business.select("business_id")
+        self.df_business.registerTempTable("business")
+        #print "business: ", self.df_business.count()
+
         schema_2 = StructType([
             StructField("latitude", FloatType(), True),
             StructField("longitude", FloatType(), True)
@@ -78,18 +80,23 @@ class MainApp(object):
             StructField("user_id", StringType(), True)
         ])
 
-        self.user_locations = self.sqlContext.read.json("clustering_models/center_gmm.json/gmm", schema)
+        self.df_user_locations = self.sqlContext.read.json("clustering_models/center_gmm.json/gmm", schema)
         filter_users = partial(isUserlocal, latitude = self.loc_lat, longitude = self.loc_long)
-        self.user_locations = self.user_locations.rdd.filter(filter_users)
-        self.user_locations = self.sqlContext.createDataFrame(self.user_locations)
-        self.user_locations = self.user_locations.select(self.user_locations.user_id).keyBy(lambda x: x.user_id).collect()
-        
-        self.df_review = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json").keyBy(lambda x: x.user_id)
-        # self.joined = self.df_review.join(self.user_locations)
-        # self.joined.registerTempTable("reviews")
-        # self.joined = self.sqlContext.sql("SELECT user_id, business_id, AVG(stars) AS avg_rating FROM reviews GROUP BY user_id")
-        # print(self.joined.take(2))
-        
+        self.df_user_locations = self.df_user_locations.rdd.filter(filter_users)
+        self.df_user_locations = self.sqlContext.createDataFrame(self.df_user_locations)
+        self.df_user_locations = self.df_user_locations.select("user_id")
+        self.df_user_locations.registerTempTable("user")
+        #print "user locations: ", self.df_user_locations.count()
+
+        self.df_review = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
+        self.df_review = self.df_review.select("business_id", "user_id", "stars")
+        self.df_review.registerTempTable("review")
+        #print "reviews: ", self.df_review.count()
+
+        self.df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, avg(r.stars) AS avg_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
+        #print "joined: ", joinedDF.count()
+        #df_joined.show()
+    
     def createCheckInDataPerUser(self):
         pass
 
