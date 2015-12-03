@@ -45,11 +45,13 @@ class MainApp(object):
         #conf.setAppName("PySparkShell")
         #conf.set("spark.executor.memory", "2g")
         #conf.set("spark.driver.memory", "1g")
-        self.sc = SparkContext(conf=conf)
-        self.sqlContext = SQLContext(self.sc)
+        self.sc = sc
+        self.sqlContext = sqlContext
+        # self.sc = SparkContext(conf=conf)
+        # self.sqlContext = SQLContext(self.sc)
         
     def loadData(self):
-        self.category_list = self.sc.textFile("yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
+        self.category_list = self.sc.textFile(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
         category_schema = StructType([
             StructField("category", StringType(), True),
             StructField("sub_category", ArrayType(StringType()), True)
@@ -59,7 +61,7 @@ class MainApp(object):
         self.category_list = self.sqlContext.createDataFrame(self.category_list, category_schema)
         subcat = self.category_list.where(self.category_list.category == self.category).first().sub_category
         
-        self.df_business = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
+        self.df_business = self.sqlContext.read.json(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
         # self.df_business = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_business.json").cache()
         self.df_business = self.df_business.select("business_id", "latitude", "longitude", "categories")
 
@@ -80,7 +82,7 @@ class MainApp(object):
             StructField("user_id", StringType(), True)
         ])
 
-        self.df_user_locations = self.sqlContext.read.json("clustering_models/center_gmm.json/gmm", schema)
+        self.df_user_locations = self.sqlContext.read.json(os.environ['WORKDIR'] + "clustering_models/center_gmm.json/gmm", schema)
         filter_users = partial(isUserlocal, latitude = self.loc_lat, longitude = self.loc_long)
         self.df_user_locations = self.df_user_locations.rdd.filter(filter_users)
         self.df_user_locations = self.sqlContext.createDataFrame(self.df_user_locations)
@@ -88,7 +90,7 @@ class MainApp(object):
         self.df_user_locations.registerTempTable("user")
         #print "user locations: ", self.df_user_locations.count()
 
-        self.df_review = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
+        self.df_review = self.sqlContext.read.json(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
         self.df_review = self.df_review.select("business_id", "user_id", "stars")
         self.df_review.registerTempTable("review")
         #print "reviews: ", self.df_review.count()
@@ -100,11 +102,8 @@ class MainApp(object):
     def createCheckInDataPerUser(self):
         pass
 
-def main():
-        app = MainApp()
-        app.init()
-        app.loadData()
-        app.createCheckInDataPerUser()
 
-if __name__ == "__main__":  # Entry Point for program.
-    sys.exit(main())
+app = MainApp()
+app.init()
+app.loadData()
+app.createCheckInDataPerUser()

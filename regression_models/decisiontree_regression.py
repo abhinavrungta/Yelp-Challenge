@@ -4,8 +4,9 @@ from pyspark.ml import Pipeline
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.regression import DecisionTreeRegressor
 from pyspark.ml.evaluation import RegressionEvaluator
+import os
 
-df = sqlContext.read.json("/home/sanchit/project/yelp/data/yelp_dataset_challenge_academic_dataset/reviewDataSet/spark-scripts/Yelp-Challenge/user_features.json")
+df = sqlContext.read.json(os.environ['WORKDIR'] + "user_features.json")
 
 df_restaurants = df.filter("category = \"Restaurants\"")
 

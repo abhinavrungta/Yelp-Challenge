@@ -50,21 +50,23 @@ class MainApp(object):
         pass
     
     def init(self):
-        os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
+        # os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
         # os.environ['AWS_ACCESS_KEY_ID'] = <YOURKEY>
         # os.environ['AWS_SECRET_ACCESS_KEY'] = <YOURKEY>
-        conf = SparkConf()
-        conf.setMaster("local[10]")
-        conf.setAppName("PySparkShell")
-        conf.set("spark.executor.memory", "2g")
-        conf.set("spark.driver.memory", "1g")
-        self.sc = SparkContext(conf=conf)
-        self.sqlContext = SQLContext(self.sc)
-        
+        #conf = SparkConf()
+        #conf.setMaster("local[10]")
+        #conf.setAppName("PySparkShell")
+        #conf.set("spark.executor.memory", "2g")
+        #conf.set("spark.driver.memory", "1g")
+        #self.sc = SparkContext(conf=conf)
+        #self.sqlContext = SQLContext(self.sc)
+        self.sc = sc
+        self.sqlContext = sqlContext        
+
     def loadData(self):
-        self.df_review = self.sqlContext.read.json("../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
+        self.df_review = self.sqlContext.read.json(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
         # self.df_review = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_review.json").cache()
-        self.df_business = self.sqlContext.read.json("../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
+        self.df_business = self.sqlContext.read.json(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
         # self.df_business = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_business.json").cache()
         self.df_review.registerTempTable("reviews")
         self.df_business.registerTempTable("business")
@@ -91,11 +93,7 @@ class MainApp(object):
         df = self.sqlContext.createDataFrame(self.user_centers.repartition(1), schema)
         df.save("center_gmm.json", "json")
 
-def main():
-        app = MainApp()
-        app.init()
-        app.loadData()
-        app.createCheckInDataPerUser()
-
-if __name__ == "__main__":  # Entry Point for program.
-    sys.exit(main())
+app = MainApp()
+app.init()
+app.loadData()
+app.createCheckInDataPerUser()
