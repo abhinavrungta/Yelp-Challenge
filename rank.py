@@ -8,6 +8,10 @@ from pyspark.context import SparkContext
 from pyspark.sql.context import SQLContext
 from pyspark.sql.types import StructType, StructField, FloatType, StringType, \
     ArrayType
+from pyspark.sql import functions as F
+from os import listdir
+from os.path import isfile, join, getsize
+import re
 
 
 def getDistance(x1, y1, x2, y2):
@@ -49,25 +53,25 @@ class MainApp(object):
         self.sqlContext = SQLContext(self.sc)
         
     def loadData(self):
-        self.category_list = self.sc.textFile("yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
+        category_list = self.sc.textFile("yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
         category_schema = StructType([
             StructField("category", StringType(), True),
             StructField("sub_category", ArrayType(StringType()), True)
         ])
         # self.category_list.registerTempTable("categories_list")
         # subcat = self.sqlContext.sql("SELECT sub_category FROM categories_list WHERE category = \"{0}\" LIMIT 1".format(self.category))
-        self.category_list = self.sqlContext.createDataFrame(self.category_list, category_schema)
-        subcat = self.category_list.where(self.category_list.category == self.category).first().sub_category
+        category_list = self.sqlContext.createDataFrame(category_list, category_schema)
+        subcat = category_list.where(category_list.category == self.category).first().sub_category
         
-        self.df_business = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
+        df_business = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
         # self.df_business = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_business.json").cache()
-        self.df_business = self.df_business.select("business_id", "latitude", "longitude", "categories")
+        df_business = df_business.select("business_id", "name", "latitude", "longitude", "categories")
 
         filter_business = partial(isBusinessLocalAndRelevant, latitude = self.loc_lat, longitude = self.loc_long, sub_categories = subcat)
-        self.df_business = self.df_business.rdd.filter(filter_business)
-        self.df_business = self.sqlContext.createDataFrame(self.df_business)
-        self.df_business = self.df_business.select("business_id")
-        self.df_business.registerTempTable("business")
+        df_business = df_business.rdd.filter(filter_business)
+        df_business = self.sqlContext.createDataFrame(df_business)
+        df_business = df_business.select("business_id", "name")
+        df_business.registerTempTable("business")
         #print "business: ", self.df_business.count()
 
         schema_2 = StructType([
@@ -80,23 +84,57 @@ class MainApp(object):
             StructField("user_id", StringType(), True)
         ])
 
-        self.df_user_locations = self.sqlContext.read.json("clustering_models/center_gmm.json/gmm", schema)
+        df_user_locations = self.sqlContext.read.json("clustering_models/center_gmm.json/gmm", schema)
         filter_users = partial(isUserlocal, latitude = self.loc_lat, longitude = self.loc_long)
-        self.df_user_locations = self.df_user_locations.rdd.filter(filter_users)
-        self.df_user_locations = self.sqlContext.createDataFrame(self.df_user_locations)
-        self.df_user_locations = self.df_user_locations.select("user_id")
-        self.df_user_locations.registerTempTable("user")
+        df_user_locations = df_user_locations.rdd.filter(filter_users)
+        df_user_locations = self.sqlContext.createDataFrame(df_user_locations)
+        df_user_locations = df_user_locations.select("user_id")
+        df_user_locations.registerTempTable("user")
         #print "user locations: ", self.df_user_locations.count()
 
-        self.df_review = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
-        self.df_review = self.df_review.select("business_id", "user_id", "stars")
-        self.df_review.registerTempTable("review")
+        df_review = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
+        df_review = df_review.select("business_id", "user_id", "stars")
+        df_review.registerTempTable("review")
         #print "reviews: ", self.df_review.count()
 
-        self.df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, avg(r.stars) AS avg_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
-        #print "joined: ", joinedDF.count()
-        #df_joined.show()
+        df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, avg(r.stars) AS avg_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
+        df_joined.registerTempTable("joined")
+
+        df_business.unpersist()
+        df_user_locations.unpersist()
+        df_review.unpersist()
+
+        df_category_pred = self.loadEliteScorePredictionsForCategory()
+        df_category_pred.registerTempTable("prediction")
+        
+        df_joined = self.sqlContext.sql("SELECT j.*, p.prediction AS elite_score, (j.avg_stars*p.prediction) AS w_score FROM joined j, prediction p WHERE j.user_id = p.user_id") 
+        #print "joined: ", self.df_joined.count()
+        #self.df_joined.show()
+
+        df_category_pred.unpersist()
+
+        df_grouped = df_joined.groupBy("business_id", "business_name").agg((F.sum("w_score")/F.sum("avg_stars")).alias("rank"))
+        print df_grouped.count()
+        df_grouped.show()
+
+        df_joined.unpersist()
+
+        return df_grouped
     
+
+    def loadEliteScorePredictionsForCategory(self):
+        fileloc = "regression_models/"
+        filename = "pred_" + re.sub(" ", "_", self.category.lower()) + ".json" 
+
+        category_file = join(fileloc, filename)
+        #print category_file
+        if isfile(category_file):
+            df_category_pred = self.sqlContext.read.json(category_file)
+            #print df_category_pred.count()
+            #df_category_pred.show()
+            return df_category_pred
+
+
     def createCheckInDataPerUser(self):
         pass
 
@@ -104,7 +142,9 @@ def main():
         app = MainApp()
         app.init()
         app.loadData()
-        app.createCheckInDataPerUser()
+        #app.loadEliteScorePredictionsForCategory()
+        #app.createCheckInDataPerUser()
+
 
 if __name__ == "__main__":  # Entry Point for program.
     sys.exit(main())
