@@ -1,7 +1,6 @@
 import datetime
 import json
 import os
-from pylab import *
 import sys
 
 from geopy.distance import vincenty
@@ -48,6 +47,9 @@ def mapUsers(user):
 
 class MainApp(object):
     def __init__(self):
+        pass
+
+    def init(self):
         os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
         # os.environ['AWS_ACCESS_KEY_ID'] = <YOURKEY>
         # os.environ['AWS_SECRET_ACCESS_KEY'] = <YOURKEY>
@@ -105,9 +107,9 @@ class MainApp(object):
 
 def main():
         app = MainApp()
-        # app.getS3File("http://ds-emr-spark.s3.amazonaws.com/data/yelp_academic_dataset_checkin.json", "user.json")
+        app.getS3File("http://ds-emr-spark.s3.amazonaws.com/data/yelp_academic_dataset_business.json", "business.json")
         # app.writeToS3File("http://ds-yelp-dataset.s3.amazonaws.com/yelp_academic_dataset_checkin.json", "user.json")
-        app.createFeatures()
+        # app.createFeatures()
 
 if __name__ == "__main__":  # Entry Point for program.
     sys.exit(main())
