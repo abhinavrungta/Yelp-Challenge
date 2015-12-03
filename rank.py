@@ -55,11 +55,7 @@ class MainApp(object):
         # self.sqlContext = SQLContext(self.sc)
         
     def loadData(self):
-<<<<<<< HEAD
-        self.category_list = self.sc.textFile(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
-=======
-        category_list = self.sc.textFile("yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
->>>>>>> 9d24301d5dd29028d0c5bf2e83c7242a3c03a609
+        category_list = self.sc.textFile(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
         category_schema = StructType([
             StructField("category", StringType(), True),
             StructField("sub_category", ArrayType(StringType()), True)
@@ -69,11 +65,7 @@ class MainApp(object):
         category_list = self.sqlContext.createDataFrame(category_list, category_schema)
         subcat = category_list.where(category_list.category == self.category).first().sub_category
         
-<<<<<<< HEAD
-        self.df_business = self.sqlContext.read.json(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
-=======
-        df_business = self.sqlContext.read.json("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
->>>>>>> 9d24301d5dd29028d0c5bf2e83c7242a3c03a609
+        df_business = self.sqlContext.read.json(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
         # self.df_business = self.sqlContext.read.json("s3n://ds-emr-spark/data/yelp_academic_dataset_business.json").cache()
         df_business = df_business.select("business_id", "name", "latitude", "longitude", "categories")
 
