@@ -1,9 +1,0 @@
-Accuracy of different models
-
-Models                          Restaurants             Shopping             Beauty and Spa             Health and Medical   
-Logistic regression             0.920251196             0.904801733          0.904455179                0.887439242
-DecisionTree regression		0.917104		0.911272	     0.911978			0.893093
-Random Forest                   0.993183015             0.992515063          0.991861119                0.990623674
-
-
-

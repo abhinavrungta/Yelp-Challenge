@@ -28,15 +28,16 @@ def getEliteCategory(elite):
 class MainApp(object):
     def __init__(self):
         # os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
-        config = SparkConf()
+        # config = SparkConf()
         # self.awsAccessKeyId="<awsAccessKeyId>"
         # self.awsSecretAccessKey="<awsSecretAccessKey>"
         # config.set("fs.s3n.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
         # config.set("fs.s3n.awsAccessKeyId", self.awsAccessKeyId)
         # config.set("fs.s3n.awsSecretAccessKey", self.awsSecretAccessKey)
 
-        self.sc = SparkContext(conf=config)
-        self.sqlContext = SQLContext(self.sc)
+        # self.sc = SparkContext(conf=config)
+        self.sc = sc
+        self.sqlContext = sqlContext
         self.elite_score = UserDefinedFunction(getEliteScore, DoubleType())
         self.elite_cat = UserDefinedFunction(getEliteCategory, IntegerType())
 
@@ -116,11 +117,11 @@ class MainApp(object):
 
 
     def loadBusinessData(self):
-        catSubCatDict, subCatCatDict = self.loadCategories("yelp_dataset_challenge_academic_dataset/cat_subcat.csv")
+        catSubCatDict, subCatCatDict = self.loadCategories(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/cat_subcat.csv")
         # print catSubCatDict
         # print subCatList
         
-        self.business = self.loadJsonDataAsPandasDF("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
+        self.business = self.loadJsonDataAsPandasDF(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_business.json")
         self.business = self.splitDataFrameList(self.business[['business_id', 'categories']], subCatCatDict, 'categories', 'category')
         # print business.head()
         
@@ -134,7 +135,8 @@ class MainApp(object):
 
 
     def loadReviewData(self):
-        self.review = self.loadJsonDataAsSparkDF("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
+        path = os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json"
+        self.review = self.loadJsonDataAsSparkDF(path)
         self.review.registerTempTable("review")
         # print "number of reivews: ", review.count()
             
@@ -144,7 +146,8 @@ class MainApp(object):
 
 
     def loadUserData(self):
-        self.user = self.loadJsonDataAsSparkDF("yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_user.json")
+        path = os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_user.json"
+        self.user = self.loadJsonDataAsSparkDF(path)
         self.user.registerTempTable("user")
         
         self.user = self.sqlContext.sql("SELECT u.*, floor(months_between(current_date(), to_date(u.yelping_since))) \
@@ -189,15 +192,11 @@ class MainApp(object):
         self.userAgg.show()
 
 
-    def writeToFile(self):    
-        self.userAgg.repartition(1).save("user_features.json","json")
+    def writeToFile(self):
+        path = os.environ['WORKDIR'] + "user_features.json"
+        self.userAgg.repartition(1).save(path,"json")
 
-
-def main():
-    app = MainApp()
-    app.createFeatures()
-    app.showSchema()
-    app.writeToFile()
-
-if __name__ == "__main__":  # Entry Point for program.
-    sys.exit(main())
+app = MainApp()
+app.createFeatures()
+app.showSchema()
+app.writeToFile()
