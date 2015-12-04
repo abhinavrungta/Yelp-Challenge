@@ -99,7 +99,7 @@ class MainApp(object):
         df_review.registerTempTable("review")
         #print "reviews: ", self.df_review.count()
 
-        df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, b.stars as business_stars, avg(r.stars) AS avg_rev_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
+        df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, first(b.stars) as business_stars, avg(r.stars) AS avg_rev_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
         df_joined.registerTempTable("joined")
 
         df_business.unpersist()
@@ -115,7 +115,7 @@ class MainApp(object):
 
         df_category_pred.unpersist()
 
-        df_grouped = df_joined.groupBy("business_id", "business_name", "business_stars", "avg_rev_stars").agg(F.avg("w_score").alias("rank"))
+        df_grouped = df_joined.groupBy("business_id", "business_name", "business_stars").agg(F.avg("w_score").alias("rank"))
         df_grouped = df_grouped.sort("rank", ascending=False)
         print df_grouped.count()
         df_grouped.show()
