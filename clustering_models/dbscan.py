@@ -51,9 +51,9 @@ def calculateCenter(cluster_points):
         lat = point.latitude * math.pi / 180
         longt = point.longitude * math.pi / 180
         
-        sum_x = math.cos(lat) * math.cos(longt)
-        sum_y = math.cos(lat) * math.sin(longt)
-        sum_z = math.sin(lat)
+        sum_x += math.cos(lat) * math.cos(longt)
+        sum_y += math.cos(lat) * math.sin(longt)
+        sum_z += math.sin(lat)
     sum_x /= size
     sum_y /= size
     sum_z /= size
