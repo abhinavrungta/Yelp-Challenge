@@ -103,9 +103,9 @@ class MainApp(object):
         self.df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, first(b.stars) as business_stars, avg(r.stars) AS avg_rev_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
         self.df_joined.registerTempTable("joined")
         
-        #self.df_business.unpersist()
-        #self.df_user_locations.unpersist()
-        #self.df_review.unpersist()
+        self.df_business.unpersist()
+        self.df_user_locations.unpersist()
+        self.df_review.unpersist()
 
         self.df_category_pred = self.loadEliteScorePredictionsForCategory()
         self.df_category_pred.registerTempTable("prediction")
