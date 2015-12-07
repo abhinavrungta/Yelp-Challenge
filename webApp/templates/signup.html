@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Python Flask Bucket List App</title>
+    <link href="../static/css/signup.css" rel="stylesheet">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+
+    <div class="container">
+      <header>
+        <div class="nav">
+        </div>
+      </header>
+      <div class="container2">
+        <h1>Find for me</h1>
+        <form class="form-horizontal" role="form" action="/signUp" method="post">
+            <div class="form-group">
+              <div class="col-sm-2"> </div>
+              <label class="control-label col-sm-2" for="text">PinCode</label>
+              <div class="col-sm-4">
+                <input type="text" class="form-control" name="pincode" id="pincode" placeholder="Enter Pincode">
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="col-sm-2"> </div>
+              <label class="control-label col-sm-2" for="text">Category:</label>
+              <div class="col-sm-4">
+                <input type="text" class="form-control" name="category" id="category" placeholder="Enter category">
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-default">Submit</button>
+              </div>
+            </div>
+          </form>
+      </div>
+      <footer class="footer">
+        <p>&copy; Company 2015</p>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,62 @@
+ul.dates li {
+		position: relative;
+		border-top: solid 1px #ddd;
+		padding: 1.3em 0 1.3em 6.75em;
+
+	}
+
+	ul.dates .date {
+		display: block;
+		position: absolute;
+		left: 0;
+		top: 1.3em;
+		background-color: #d52349;
+		height: 3.5em;
+    text-align: center;
+		color: #fff;
+		border-top-left-radius: 5px;
+		border-bottom-left-radius: 5px;
+		padding: 0.5em 0.75em 0 1em;
+	}
+
+		ul.dates .date:after {
+			content: '';
+			position: absolute;
+			bottom: 0;
+			right: -1.2em;
+			border-left: solid 1.25em #d52349;
+			border-top: solid 1.8em transparent;
+			border-bottom: solid 1.8em transparent;
+		}
+
+		ul.dates .date strong {
+			display: block;
+			font-size: 1.75em;
+			padding-top: 0.15em;
+		}
+
+	ul.dates h3 {
+		font-size: 1.1em;
+	}
+
+	ul.dates p {
+		margin: 0;
+	}
+
+	#map {
+			width: 435px;
+			height: 477px;
+	}
+
+
+.navbar2 {
+	background-color:#89C9FB
+	position:relative;
+	top:0px
+	height:20px
+	position: relative;
+	min-height: 50px;
+	margin-bottom: 20px;
+	border: 1px solid transparent;
+
+}
