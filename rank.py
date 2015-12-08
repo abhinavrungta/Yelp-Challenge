@@ -1,6 +1,10 @@
 import os
-os.environ['WORKDIR'] = "/home/ec2-user/Yelp-Challenge/"
 import sys
+os.environ['WORKDIR'] = "/home/ec2-user/Yelp-Challenge/"
+os.environ["SPARK_HOME"] = "/home/ec2-user/spark-1.5.2/"
+sys.path.append(os.environ["SPARK_HOME"] + "python")
+sys.path.append(os.environ["SPARK_HOME"] + "python/lib/py4j-0.8.2.1-src.zip")        
+
 from _functools import partial
 
 from geopy.distance import vincenty
@@ -38,12 +42,11 @@ class MainApp(object):
         self.category = cat
         self.loc_lat = lat
         self.loc_long = longt
+        print(longt)
+        print(lat)
         pass
     
     def init(self):
-        os.environ["SPARK_HOME"] = "/home/ec2-user/spark-1.5.2/"
-        sys.path.append(os.environ["SPARK_HOME"] + "python")
-        sys.path.append(os.environ["SPARK_HOME"] + "python/lib/py4j-0.8.2.1-src.zip")
         # os.environ['AWS_ACCESS_KEY_ID'] = <YOURKEY>
         # os.environ['AWS_SECRET_ACCESS_KEY'] = <YOURKEY>
         conf = SparkConf()
@@ -143,6 +146,7 @@ class MainApp(object):
         pass
 
 if __name__ == "__main__":
-    app = MainApp(0.0, 0.0)
+    app = MainApp("Restaurants", 35.222406, -80.79221)
     app.init()
     app.loadData()
+

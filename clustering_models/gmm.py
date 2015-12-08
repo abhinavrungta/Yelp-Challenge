@@ -16,7 +16,7 @@ def getCentersOfUser(data):
     cluster_centers = []
     if(size < 5):
         return (cluster_centers, float(0.0), str(userId))
-    locations = np.empty([size, 3]) 
+    locations = np.zeros([size, 3]) 
     for x in range(0, size):
         # convert to x,y,z
         point = locations_row[x]
@@ -60,7 +60,7 @@ def getCentersOfUser(data):
         final_lat = math.atan2(sum_z, final_hyp)
         final_lat = final_lat * 180 / math.pi
         final_long = final_long * 180 / math.pi
-        cluster_centers.append(Row(latitude=final_long, longitude=final_lat))
+        cluster_centers.append(Row(latitude=float(final_long), longitude=float(final_lat)))
     
     return (cluster_centers, float(sl_score), str(userId))
 
@@ -111,12 +111,16 @@ class MainApp(object):
             StructField("user_id", StringType(), True)
         ])
         df = self.sqlContext.createDataFrame(self.user_centers.repartition(1), schema)
-        df.write().save("center_gmm.json", "json")
-        score = df.mean('sl_score')
+        print(df.groupBy().mean('sl_score').collect())
+        score = df.filter(df.sl_score != 0.0).groupBy().mean('sl_score').collect()
         print(score)
+        df.show()
+        df.save("center_gmm.json", "json")
+        
 
 if __name__ == "__main__":
     app = MainApp()
     app.init()
     app.loadData()
     app.createCheckInDataPerUser()
+

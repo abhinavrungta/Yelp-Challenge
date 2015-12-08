@@ -65,7 +65,7 @@ def calculateCenter(cluster_points):
     
     final_lat = final_lat * 180 / math.pi
     final_long = final_long * 180 / math.pi
-    return Row(latitude=final_lat, longitude=final_long)
+    return Row(latitude=float(final_lat), longitude=float(final_long))
 
 class MainApp(object):
     def __init__(self):
@@ -83,7 +83,7 @@ class MainApp(object):
         # self.sc = SparkContext(conf=conf)
         self.sc = sc
         # self.sqlContext = SQLContext(self.sc)
-        sqlf.sqlContext = sqlContext
+        self.sqlContext = sqlContext
         
     def loadData(self):
         self.df_review = self.sqlContext.read.json(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json")
@@ -114,12 +114,15 @@ class MainApp(object):
             StructField("user_id", StringType(), True)
         ])
         df = self.sqlContext.createDataFrame(self.user_centers.repartition(1), schema)
-        df.save("center.json", "json")
-        score = df.mean('sl_score')
+        print(df.groupBy().mean('sl_score').collect())
+        score = df.filter(df.sl_score != 0.0).groupBy().mean('sl_score').collect()
         print(score)
+        df.show()
+        df.save("center.json", "json")
 
 if __name__ == "__main__":
     app = MainApp()
     app.init()
     app.loadData()
     app.createCheckInDataPerUser()
+
