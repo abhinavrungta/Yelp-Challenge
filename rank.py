@@ -142,6 +142,7 @@ class MainApp(object):
     def createCheckInDataPerUser(self):
         pass
 
-app = MainApp()
-app.init()
-app.loadData()
+if __name__ == "__main__":
+    app = MainApp()
+    app.init()
+    app.loadData()

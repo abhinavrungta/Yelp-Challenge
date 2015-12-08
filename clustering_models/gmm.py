@@ -1,17 +1,12 @@
-from numpy import math
+import math
 import os
-import sys
+os.environ['WORKDIR'] = "/home/ec2-user/Yelp-Challenge/"
 
-from pyspark import SparkConf
-from pyspark.context import SparkContext
-from pyspark.sql.context import SQLContext
 from pyspark.sql.types import Row, StructType, StructField, FloatType, ArrayType, \
     StringType
 from pyspark.storagelevel import StorageLevel
 from sklearn import metrics
-from sklearn import mixture
-
-import numpy as np        
+from sklearn import mixture        
 
 
 def getCentersOfUser(data):
@@ -21,7 +16,7 @@ def getCentersOfUser(data):
     cluster_centers = []
     if(size < 5):
         return (cluster_centers, 0.0, str(userId))
-    locations = np.empty([size, 3])
+    locations = [[0.0 for x in range(3)] for x in range(size)] 
     for x in range(0, size):
         # convert to x,y,z
         point = locations_row[x]
@@ -35,7 +30,7 @@ def getCentersOfUser(data):
         # locations[x][0] = point.latitude
         # locations[x][1] = point.longitude
     
-    lowest_bic = np.infty
+    lowest_bic = float("inf")
     bic = []
     n_components_range = range(1, 5)
     cv_types = ['spherical', 'tied', 'diag', 'full']
@@ -51,7 +46,7 @@ def getCentersOfUser(data):
     centers = best_gmm.means_
     y = best_gmm.predict(locations)
     sl_score = 0.0
-    if len(np.unique(y)) >= 2:
+    if len(set(y)) >= 2:
         sl_score = metrics.silhouette_score(locations, y)
 
     size = len(centers)
@@ -120,7 +115,8 @@ class MainApp(object):
         score = df.mean('sl_score')
         print(score)
 
-app = MainApp()
-app.init()
-app.loadData()
-app.createCheckInDataPerUser()
+if __name__ == "__main__":
+    app = MainApp()
+    app.init()
+    app.loadData()
+    app.createCheckInDataPerUser()

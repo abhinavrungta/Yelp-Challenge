@@ -1,18 +1,13 @@
-import math
 import os
-import sys
+os.environ['WORKDIR'] = "/home/ec2-user/Yelp-Challenge/"
+import math
 
 from geopy.distance import vincenty
-from pyspark import SparkConf
-from pyspark.context import SparkContext
-from pyspark.sql.context import SQLContext
 from pyspark.sql.types import StructType, StructField, FloatType, StringType, \
     ArrayType, Row
 from pyspark.storagelevel import StorageLevel
 from sklearn.cluster import DBSCAN
 from sklearn import metrics
-
-import numpy as np
 
 
 def getDistance(x1, y1, x2, y2):
@@ -22,7 +17,7 @@ def getCentersOfUser(data):
     userId = data[0]
     locations = list(data[1])
     size = len(locations)
-    distance_matrix = np.zeros((size, size))
+    distance_matrix = [[0.0 for x in range(size)] for x in range(size)]
     for x in range(0, size):
         for y in range(x + 1, size):
             pointA = locations[x]
@@ -34,7 +29,7 @@ def getCentersOfUser(data):
     db = DBSCAN(eps=3, min_samples=5, metric='precomputed')
     y = db.fit_predict(distance_matrix)
     sl_score = 0.0
-    if len(np.unique(y)) >= 2:
+    if len(set(y)) >= 2:
         sl_score = metrics.silhouette_score(distance_matrix, y, metric="precomputed")
         
     unique_labels = set(db.labels_)
@@ -122,7 +117,8 @@ class MainApp(object):
         score = df.mean('sl_score')
         print(score)
 
-app = MainApp()
-app.init()
-app.loadData()
-app.createCheckInDataPerUser()
+if __name__ == "__main__":
+    app = MainApp()
+    app.init()
+    app.loadData()
+    app.createCheckInDataPerUser()

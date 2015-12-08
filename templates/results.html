@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Python Flask Bucket List App</title>
+    <link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../static/css/results.css" rel="stylesheet">
+    <script src="../static/js/jquery-1.11.3.min.js"></script>
+    <script src="../static/js/signUp.js"></script>
+
+    <!--
+            You need to include this script tag on any page that has a Google Map.
+
+            The following script tag will work when opening this example locally on your computer.
+            But if you use this on a localhost server or a live website you will need to include an API key.
+            Sign up for one here (it's free for small usage):
+                https://developers.google.com/maps/documentation/javascript/tutorial#api_key
+
+            After you sign up, use the following script tag with YOUR_GOOGLE_API_KEY replaced with your actual key.
+                <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_API_KEY&sensor=false"></script>
+    -->
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+  </head>
+  <body>
+    <div class="navbar2" style="background-color:#89C9FB">
+      <div class="row" >
+        <div class="col-lg-3" style="color:#fff"> <h3>Yelp Recommender App</h3></div>
+        <div class="col-lg-4" style="color:#fff"> <h3></h3></div>
+            <form class="form-inline" style="margin-top:17px; color:#fff" action="/signUp" method="post">
+              <div class="form-group">
+                <label for="exampleInputName2">Pincode</label>
+                <input type="text" class="form-control" name="pincode" id="pincode" placeholder={{pincode}}>
+              </div>
+              <div class="form-group">
+                <label for="exampleInputEmail2">Category</label>
+                <input type="email" class="form-control" name="category" id="category" placeholder={{category}}>
+              </div>
+              <button type="submit" class="btn btn-default">Find</button>
+            </form>
+          </div>
+      </div>
+    <div class="container">
+
+      <div class="row">
+        <div class="col-xs-6">
+          <div class="jumbotron">
+            <div class="8u 12u(mobile)">
+              <section>
+                  <ul class="dates">
+                  {% for place in location %}
+                  <li>
+                    <span class="date"><strong>{{loop.index}}</strong></span>
+                    <h3><a href="#">{{place[0]}}</a></h3>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div class="col-xs-6">
+          <div class="jumbotron">
+           <!-- The element that will contain our Google Map. This is used in both the Javascript and CSS above. -->
+           <div id="map"></div>
+             </div>
+        </div>
+        </div>
+      </div>
+      <div class="row">
+        <footer class="footer">
+
+        </footer>
+      </div>
+    </div>
+  </body>
+  <script type="text/javascript">
+    function test_func(data) {
+        console.log(data);
+    }
+    test_func({{ data|safe }})
+  </script>
+  <script  type="text/javascript">
+      var map;
+      var labels = '123456789';
+      var labelIndex = 0;
+
+      function initialize(locations) {
+      var mapOptions = {
+                  zoom: 9,
+                  center: new google.maps.LatLng(-33.890542, 151.274856),
+                  mapTypeId: google.maps.MapTypeId.ROADMAP,
+                  styles: [{"featureType":"administrative","elementType":"labels.text.fill","stylers":[{"color":"#444444"}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#f2f2f2"}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"road","elementType":"all","stylers":[{"saturation":-100},{"lightness":45}]},{"featureType":"road.highway","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road.arterial","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"transit","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#46bcec"},{"visibility":"on"}]}]
+
+                  };
+
+          //var locations = {{ data|safe }};
+
+          map = new google.maps.Map(document.getElementById('map'),mapOptions);
+              //Add 1st marker
+
+          var i, LatLng_n, marker_n
+          for (i = 0; i < locations.length; i++) {
+            var Latlng_n = new google.maps.LatLng(locations[i][1], locations[i][2]);
+            var marker_n = new google.maps.Marker({
+            position: Latlng_n,
+            label: labels[labelIndex++ % labels.length],
+            title:String(i)});
+
+              marker_n.setMap(map);
+            }
+
+
+          //Add 2nd marke
+          var Latlng_10 = new google.maps.LatLng(-33.550198, 151.259302);
+          var marker_10 = new google.maps.Marker({
+              position: Latlng_10,
+              title:"10"});
+              marker_10.setAnimation(google.maps.Animation.BOUNCE);
+              marker_10.setMap(map);
+
+
+          }
+      initialize({{ data|safe }});
+
+
+  </script>
+</html>
