@@ -38,12 +38,7 @@ def isBusinessLocalAndRelevant(input_row, latitude, longitude, sub_categories):
     return False
 
 class MainApp(object):
-    def __init__(self, cat, lat, longt):
-        self.category = cat
-        self.loc_lat = lat
-        self.loc_long = longt
-        print(longt)
-        print(lat)
+    def __init__(self):
         pass
     
     def init(self):
@@ -59,7 +54,12 @@ class MainApp(object):
         self.sc = SparkContext(conf=conf)
         self.sqlContext = SQLContext(self.sc)
         
-    def loadData(self):
+    def loadData(self, cat, lat, longt):
+        self.category = cat
+        self.loc_lat = lat
+        self.loc_long = longt
+        print(longt)
+        print(lat)
         category_list = self.sc.textFile(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
         category_schema = StructType([
             StructField("category", StringType(), True),
@@ -107,9 +107,9 @@ class MainApp(object):
         self.df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, first(b.stars) AS business_stars, first(b.latitude) AS latitude, first(b.longitude) AS longitude, avg(r.stars) AS avg_rev_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
         self.df_joined.registerTempTable("joined")
         
-        self.df_business.unpersist()
-        self.df_user_locations.unpersist()
-        self.df_review.unpersist()
+        #self.df_business.unpersist()
+        #self.df_user_locations.unpersist()
+        #self.df_review.unpersist()
 
         self.df_category_pred = self.loadEliteScorePredictionsForCategory()
         self.df_category_pred.registerTempTable("prediction")
@@ -118,7 +118,7 @@ class MainApp(object):
         #print "joined: ", self.self.df_joined.count()
         #self.self.df_joined.show()
 
-        self.df_category_pred.unpersist()
+        #self.df_category_pred.unpersist()
 
         df_grouped = self.df_joined.groupBy("business_id", "business_name", "business_stars", "latitude", "longitude").agg(F.avg("w_score").alias("rank"))
         df_grouped = df_grouped.sort("rank", ascending=False)

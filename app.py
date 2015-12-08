@@ -2,6 +2,7 @@ import rank
 from pyzipcode import ZipCodeDatabase
 from flask import Flask, render_template,json, request, make_response
 app = Flask(__name__)
+
 @app.route("/")
 def main():
     return render_template('index.html')
@@ -28,13 +29,13 @@ def index():
     
     zcdb = ZipCodeDatabase()
     zipcode = zcdb[pincode]
-    rec = rank.MainApp(category, zipcode.latitude, zipcode.longitude)
-    rec.init()
-    listData = rec.loadData()
+    listData = global_rec.loadData(category, zipcode.latitude, zipcode.longitude)
+    print(listData)
     data = []
-    for x in range(len(listData)):
+    for x in listData:
         item = [x.business_name, x.latitude, x.longitude, x.business_stars]
         data.append(item)
+        print(item)
 
     # data = getData()
     result_html = render_template('results.html', data=json.dumps(data), location = data,pincode = pincode, category = category)
@@ -58,4 +59,7 @@ def getData():
     return locations
 
 if __name__ == "__main__":
+    global global_rec
+    global_rec = rank.MainApp()
+    global_rec.init()
     app.run(host = '0.0.0.0', debug = False)
