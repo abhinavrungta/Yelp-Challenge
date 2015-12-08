@@ -1,4 +1,5 @@
 import rank
+from pyzipcode import ZipCodeDatabase
 from flask import Flask, render_template,json, request, make_response
 app = Flask(__name__)
 
@@ -26,8 +27,17 @@ def index():
                 "Unable to get URL. Please make sure it's valid and try again."
             )
     
-    app = rank.MainApp()
-    data = getData()
+    zcdb = ZipCodeDatabase()
+    zipcode = zcdb[pincode]
+    app = rank.MainApp(category, zipcode.latitude, zipcode.longitude)
+    app.init()
+    listData = app.loadData()
+    data = []
+    for x in range(len(listData)):
+        item = [x.business_name, x.latitude, x.longitude, x.business_stars]
+        data.append(item)
+
+    # data = getData()
     result_html = render_template('results.html', data=json.dumps(data), location = data,pincode = pincode, category = category)
     response= make_response(result_html)
     response.headers["Content-Type"] = "text/html; charset=utf-8"

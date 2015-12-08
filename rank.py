@@ -1,8 +1,7 @@
 import os
 os.environ['WORKDIR'] = "/home/ec2-user/Yelp-Challenge/"
-
-from _functools import partial
 import sys
+from _functools import partial
 
 from geopy.distance import vincenty
 from pyspark import SparkConf
@@ -11,8 +10,7 @@ from pyspark.sql.context import SQLContext
 from pyspark.sql.types import StructType, StructField, FloatType, StringType, \
     ArrayType
 from pyspark.sql import functions as F
-from os import listdir
-from os.path import isfile, join, getsize
+from os.path import isfile, join
 import re
 
 
@@ -36,25 +34,27 @@ def isBusinessLocalAndRelevant(input_row, latitude, longitude, sub_categories):
     return False
 
 class MainApp(object):
-    def __init__(self):
+    def __init__(self, cat, lat, longt):
         self.category = cat
-        self.loc_lat = zipcode.latitude
-        self.loc_long = zipcode.longitude
+        self.loc_lat = lat
+        self.loc_long = longt
         pass
     
     def init(self):
-        #os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
+        os.environ["SPARK_HOME"] = "/home/ec2-user/spark-1.5.2/"
+        sys.path.append(os.environ["SPARK_HOME"] + "python")
+        sys.path.append(os.environ["SPARK_HOME"] + "python/lib/py4j-0.8.2.1-src.zip")
         # os.environ['AWS_ACCESS_KEY_ID'] = <YOURKEY>
         # os.environ['AWS_SECRET_ACCESS_KEY'] = <YOURKEY>
         conf = SparkConf()
-        #conf.setMaster("local[10]")
-        #conf.setAppName("PySparkShell")
+        conf.setMaster("local[10]")
+        conf.setAppName("PySparkShell")
         #conf.set("spark.executor.memory", "2g")
         #conf.set("spark.driver.memory", "1g")
-        self.sc = sc
-        self.sqlContext = sqlContext
-        #self.sc = SparkContext(conf=conf)
-        #self.sqlContext = SQLContext(self.sc)
+        #self.sc = sc
+        #self.sqlContext = sqlContext
+        self.sc = SparkContext(conf=conf)
+        self.sqlContext = SQLContext(self.sc)
         
     def loadData(self):
         category_list = self.sc.textFile(os.environ['WORKDIR'] + "yelp_dataset_challenge_academic_dataset/cat_subcat.csv").map(lambda line: (line.split(',')[0], line.split(',')))
@@ -124,7 +124,7 @@ class MainApp(object):
 
         self.df_joined.unpersist()
 
-        return df_grouped
+        return df_grouped.take(10)
 
     def loadEliteScorePredictionsForCategory(self):
         fileloc = "regression_models/"
@@ -143,6 +143,6 @@ class MainApp(object):
         pass
 
 if __name__ == "__main__":
-    app = MainApp()
+    app = MainApp(0.0, 0.0)
     app.init()
     app.loadData()
