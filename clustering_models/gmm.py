@@ -7,7 +7,7 @@ from pyspark.sql.types import Row, StructType, StructField, FloatType, ArrayType
 from pyspark.storagelevel import StorageLevel
 from sklearn import metrics
 from sklearn import mixture        
-
+import numpy as np
 
 def getCentersOfUser(data):
     userId = data[0]
@@ -15,8 +15,8 @@ def getCentersOfUser(data):
     size = len(locations_row)
     cluster_centers = []
     if(size < 5):
-        return (cluster_centers, 0.0, str(userId))
-    locations = [[0.0 for x in range(3)] for x in range(size)] 
+        return (cluster_centers, float(0.0), str(userId))
+    locations = np.empty([size, 3]) 
     for x in range(0, size):
         # convert to x,y,z
         point = locations_row[x]
@@ -30,7 +30,7 @@ def getCentersOfUser(data):
         # locations[x][0] = point.latitude
         # locations[x][1] = point.longitude
     
-    lowest_bic = float("inf")
+    lowest_bic = np.infty
     bic = []
     n_components_range = range(1, 5)
     cv_types = ['spherical', 'tied', 'diag', 'full']
@@ -46,7 +46,7 @@ def getCentersOfUser(data):
     centers = best_gmm.means_
     y = best_gmm.predict(locations)
     sl_score = 0.0
-    if len(set(y)) >= 2:
+    if len(np.unique(y)) >= 2:
         sl_score = metrics.silhouette_score(locations, y)
 
     size = len(centers)
@@ -62,7 +62,7 @@ def getCentersOfUser(data):
         final_long = final_long * 180 / math.pi
         cluster_centers.append(Row(latitude=final_long, longitude=final_lat))
     
-    return (cluster_centers, sl_score, str(userId))
+    return (cluster_centers, float(sl_score), str(userId))
 
 class MainApp(object):
     def __init__(self):
@@ -111,7 +111,7 @@ class MainApp(object):
             StructField("user_id", StringType(), True)
         ])
         df = self.sqlContext.createDataFrame(self.user_centers.repartition(1), schema)
-        df.save("center_gmm.json", "json")
+        df.write().save("center_gmm.json", "json")
         score = df.mean('sl_score')
         print(score)
 
