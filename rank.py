@@ -104,7 +104,7 @@ class MainApp(object):
         self.df_review.registerTempTable("review")
         #print "reviews: ", self.self.df_review.count()
 
-        self.df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, first(b.stars) AS business_stars, b.latitude AS latitude, b.longitude AS longitude, avg(r.stars) AS avg_rev_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
+        self.df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, first(b.stars) AS business_stars, first(b.latitude) AS latitude, first(b.longitude) AS longitude, avg(r.stars) AS avg_rev_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
         self.df_joined.registerTempTable("joined")
         
         self.df_business.unpersist()
@@ -125,7 +125,7 @@ class MainApp(object):
         print df_grouped.count()
         df_grouped.show()
 
-        self.df_joined.unpersist()
+        # self.df_joined.unpersist()
 
         return df_grouped.take(10)
 
