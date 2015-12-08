@@ -32,7 +32,7 @@
               </div>
               <div class="form-group">
                 <label for="exampleInputEmail2">Category</label>
-                <input type="email" class="form-control" name="category" id="category" placeholder={{category}}>
+                <input type="text" class="form-control" name="category" id="category" placeholder={{category}}>
               </div>
               <button type="submit" class="btn btn-default">Find</button>
             </form>
@@ -83,10 +83,10 @@
       var labels = '123456789';
       var labelIndex = 0;
 
-      function initialize(locations) {
+      function initialize(locations, lat, longt) {
       var mapOptions = {
-                  zoom: 9,
-                  center: new google.maps.LatLng(-33.890542, 151.274856),
+                  zoom: 11,
+                  center: new google.maps.LatLng(lat, longt),
                   mapTypeId: google.maps.MapTypeId.ROADMAP,
                   styles: [{"featureType":"administrative","elementType":"labels.text.fill","stylers":[{"color":"#444444"}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#f2f2f2"}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"road","elementType":"all","stylers":[{"saturation":-100},{"lightness":45}]},{"featureType":"road.highway","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road.arterial","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"transit","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#46bcec"},{"visibility":"on"}]}]
 
@@ -110,7 +110,7 @@
 
 
           //Add 2nd marke
-          var Latlng_10 = new google.maps.LatLng(-33.550198, 151.259302);
+          var Latlng_10 = new google.maps.LatLng(lat, longt);
           var marker_10 = new google.maps.Marker({
               position: Latlng_10,
               title:"10"});
@@ -119,7 +119,7 @@
 
 
           }
-      initialize({{ data|safe }});
+      initialize({{ data|safe }}, {{lat}}, {{longt}});
 
 
   </script>

@@ -38,7 +38,7 @@ def index():
         print(item)
 
     # data = getData()
-    result_html = render_template('results.html', data=json.dumps(data), location = data,pincode = pincode, category = category)
+    result_html = render_template('results.html', data=json.dumps(data), location = data,pincode = pincode, category = category, lat = zipcode.latitude, longt=zipcode.longitude)
     response= make_response(result_html)
     response.headers["Content-Type"] = "text/html; charset=utf-8"
     return response
