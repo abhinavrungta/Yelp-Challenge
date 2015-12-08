@@ -1,5 +1,4 @@
 import math
-import numpy
 import os
 import sys
 
@@ -11,6 +10,9 @@ from pyspark.sql.types import StructType, StructField, FloatType, StringType, \
     ArrayType, Row
 from pyspark.storagelevel import StorageLevel
 from sklearn.cluster import DBSCAN
+from sklearn import metrics
+
+import numpy as np
 
 
 def getDistance(x1, y1, x2, y2):
@@ -20,7 +22,7 @@ def getCentersOfUser(data):
     userId = data[0]
     locations = list(data[1])
     size = len(locations)
-    distance_matrix = numpy.zeros((size, size))
+    distance_matrix = np.zeros((size, size))
     for x in range(0, size):
         for y in range(x + 1, size):
             pointA = locations[x]
@@ -29,8 +31,12 @@ def getCentersOfUser(data):
             distance_matrix[x][y] = dist
             distance_matrix[y][x] = dist
     
-    db = DBSCAN(eps=4, min_samples=5, metric='precomputed').fit(distance_matrix)
-    
+    db = DBSCAN(eps=3, min_samples=5, metric='precomputed')
+    y = db.fit_predict(distance_matrix)
+    sl_score = 0.0
+    if len(np.unique(y)) >= 2:
+        sl_score = metrics.silhouette_score(distance_matrix, y, metric="precomputed")
+        
     unique_labels = set(db.labels_)
     cluster_centers = []
     for k in unique_labels:
@@ -40,7 +46,7 @@ def getCentersOfUser(data):
                 if(db.labels_[i] == k):
                     cluster_points.append(locations[i])
             cluster_centers.append(calculateCenter(cluster_points))        
-    return (cluster_centers, str(userId))
+    return (cluster_centers, sl_score, str(userId))
 
 def calculateCenter(cluster_points):
     size = len(cluster_points)
@@ -108,10 +114,13 @@ class MainApp(object):
         
         schema = StructType([
             StructField("cluster_centers", ArrayType(schema_2), True),
+            StructField("sl_score", FloatType(), True),
             StructField("user_id", StringType(), True)
         ])
         df = self.sqlContext.createDataFrame(self.user_centers.repartition(1), schema)
         df.save("center.json", "json")
+        score = df.mean('sl_score')
+        print(score)
 
 app = MainApp()
 app.init()

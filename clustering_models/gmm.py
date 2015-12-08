@@ -1,3 +1,4 @@
+from numpy import math
 import os
 import sys
 
@@ -7,6 +8,7 @@ from pyspark.sql.context import SQLContext
 from pyspark.sql.types import Row, StructType, StructField, FloatType, ArrayType, \
     StringType
 from pyspark.storagelevel import StorageLevel
+from sklearn import metrics
 from sklearn import mixture
 
 import numpy as np        
@@ -19,11 +21,19 @@ def getCentersOfUser(data):
     cluster_centers = []
     if(size < 5):
         return (cluster_centers, str(userId))
-    locations = np.empty([size, 2])
+    locations = np.empty([size, 3])
     for x in range(0, size):
+        # convert to x,y,z
         point = locations_row[x]
-        locations[x][0] = point.latitude
-        locations[x][1] = point.longitude
+        lat = point.latitude * math.pi / 180
+        longt = point.longitude * math.pi / 180
+        
+        locations[x][0] = math.cos(lat) * math.cos(longt)
+        locations[x][1] = math.cos(lat) * math.sin(longt)
+        locations[x][2] = math.sin(lat)
+        
+        # locations[x][0] = point.latitude
+        # locations[x][1] = point.longitude
     
     lowest_bic = np.infty
     bic = []
@@ -39,11 +49,25 @@ def getCentersOfUser(data):
             best_gmm = gmm
     
     centers = best_gmm.means_
+    y = best_gmm.predict(locations)
+    sl_score = 0.0
+    if len(np.unique(y)) >= 2:
+        sl_score = metrics.silhouette_score(locations, y)
+
     size = len(centers)
     for x in range(0, size):
-        cluster_centers.append(Row(latitude=float(centers[x][0]), longitude=float(centers[x][1])))
+        # convert back to latitude and longitude.
+        sum_x = float(centers[x][0])
+        sum_y = float(centers[x][1])
+        sum_z = float(centers[x][2])
+        final_long = math.atan2(sum_y, sum_x)
+        final_hyp = math.sqrt(sum_y * sum_y + sum_x * sum_x)
+        final_lat = math.atan2(sum_z, final_hyp)
+        final_lat = final_lat * 180 / math.pi
+        final_long = final_long * 180 / math.pi
+        cluster_centers.append(Row(latitude=final_long, longitude=final_lat))
     
-    return (cluster_centers, str(userId))
+    return (cluster_centers, sl_score, str(userId))
 
 class MainApp(object):
     def __init__(self):
@@ -53,13 +77,13 @@ class MainApp(object):
         # os.environ["SPARK_HOME"] = "/Users/abhinavrungta/Desktop/setups/spark-1.5.2"
         # os.environ['AWS_ACCESS_KEY_ID'] = <YOURKEY>
         # os.environ['AWS_SECRET_ACCESS_KEY'] = <YOURKEY>
-        #conf = SparkConf()
-        #conf.setMaster("local[10]")
-        #conf.setAppName("PySparkShell")
-        #conf.set("spark.executor.memory", "2g")
-        #conf.set("spark.driver.memory", "1g")
-        #self.sc = SparkContext(conf=conf)
-        #self.sqlContext = SQLContext(self.sc)
+        # conf = SparkConf()
+        # conf.setMaster("local[10]")
+        # conf.setAppName("PySparkShell")
+        # conf.set("spark.executor.memory", "2g")
+        # conf.set("spark.driver.memory", "1g")
+        # self.sc = SparkContext(conf=conf)
+        # self.sqlContext = SQLContext(self.sc)
         self.sc = sc
         self.sqlContext = sqlContext        
 
@@ -79,7 +103,7 @@ class MainApp(object):
         
         self.df_join_reviewAndBusiness = self.sqlContext.sql("SELECT r.user_id, b.latitude, b.longitude FROM reviews_user r JOIN business_loc b ON r.business_id = b.business_id").rdd.groupBy(lambda x: x.user_id).persist(StorageLevel(True, True, False, True, 1))
         # self.df_join_reviewAndBusiness.repartition(1).saveAsTextFile("user.json")
-        self.user_centers = self.df_join_reviewAndBusiness.map(getCentersOfUser, preservesPartitioning = True)
+        self.user_centers = self.df_join_reviewAndBusiness.map(getCentersOfUser, preservesPartitioning=True)
         
         schema_2 = StructType([
             StructField("latitude", FloatType(), True),
@@ -88,10 +112,13 @@ class MainApp(object):
         
         schema = StructType([
             StructField("cluster_centers", ArrayType(schema_2), True),
+            StructField("sl_score", FloatType(), True),
             StructField("user_id", StringType(), True)
         ])
         df = self.sqlContext.createDataFrame(self.user_centers.repartition(1), schema)
         df.save("center_gmm.json", "json")
+        score = df.mean('sl_score')
+        print(score)
 
 app = MainApp()
 app.init()

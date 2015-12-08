@@ -23,3 +23,5 @@ sudo yum install gcc
 sudo yum install gcc-c++
 sudo yum install gcc-gfortran
 sudo yum install atlas-devel
+
+

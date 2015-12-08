@@ -74,7 +74,7 @@ class MainApp(object):
         filter_business = partial(isBusinessLocalAndRelevant, latitude = self.loc_lat, longitude = self.loc_long, sub_categories = subcat)
         self.df_business = self.df_business.rdd.filter(filter_business)
         self.df_business = self.sqlContext.createDataFrame(self.df_business)
-        self.df_business = self.df_business.select("business_id", "name", "stars")
+        self.df_business = self.df_business.select("business_id", "name", "stars", "latitude", "longitude")
         self.df_business.registerTempTable("business")
 
         schema_2 = StructType([
@@ -84,6 +84,7 @@ class MainApp(object):
         
         schema = StructType([
             StructField("cluster_centers", ArrayType(schema_2), True),
+            StructField("sl_score", FloatType(), True),
             StructField("user_id", StringType(), True)
         ])
 
@@ -100,7 +101,7 @@ class MainApp(object):
         self.df_review.registerTempTable("review")
         #print "reviews: ", self.self.df_review.count()
 
-        self.df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, first(b.stars) as business_stars, avg(r.stars) AS avg_rev_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
+        self.df_joined = self.sqlContext.sql("SELECT r.user_id AS user_id, r.business_id AS business_id, first(b.name) AS business_name, first(b.stars) AS business_stars, b.latitude AS latitude, b.longitude AS longitude, avg(r.stars) AS avg_rev_stars FROM review r, business b, user u WHERE r.business_id = b.business_id AND r.user_id = u.user_id GROUP BY r.user_id, r.business_id")
         self.df_joined.registerTempTable("joined")
         
         self.df_business.unpersist()
@@ -116,7 +117,7 @@ class MainApp(object):
 
         self.df_category_pred.unpersist()
 
-        df_grouped = self.df_joined.groupBy("business_id", "business_name", "business_stars").agg(F.avg("w_score").alias("rank"))
+        df_grouped = self.df_joined.groupBy("business_id", "business_name", "business_stars", "latitude", "longitude").agg(F.avg("w_score").alias("rank"))
         df_grouped = df_grouped.sort("rank", ascending=False)
         print df_grouped.count()
         df_grouped.show()
