@@ -20,7 +20,7 @@ def getCentersOfUser(data):
     size = len(locations_row)
     cluster_centers = []
     if(size < 5):
-        return (cluster_centers, str(userId))
+        return (cluster_centers, 0.0, str(userId))
     locations = np.empty([size, 3])
     for x in range(0, size):
         # convert to x,y,z
